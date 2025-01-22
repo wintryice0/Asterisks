@@ -1,1 +1,11 @@
-/* All style elements for your extension go here */
+/* style.css */
+.asterisk-processor-settings {
+    padding: 15px;
+    border: 1px solid #444;
+    margin: 10px 0;
+    border-radius: 5px;
+}
+
+.asterisk-processor-settings h4 {
+    margin-top: 0;
+}
