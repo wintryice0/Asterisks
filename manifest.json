@@ -1,4 +1,3 @@
-// manifest.json
 {
     "display_name": "Asterisk Processor",
     "loading_order": 10,
