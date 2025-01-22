@@ -1,5 +1,4 @@
-// index.js
-import { extension_settings, eventSource, event_types, saveSettingsDebounced } from "../../../../script.js";
+import { extension_settings, eventSource, event_types, saveSettingsDebounced } from "../../../script.js";
 import { applyTextTransformations } from "./text-processor.js";
 
 const DEFAULT_SETTINGS = {
@@ -10,13 +9,11 @@ const extensionName = "wintryice0-asterisks";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
 function loadSettings() {
-    if (!extension_settings.asteriskProcessor) {
-        extension_settings.asteriskProcessor = DEFAULT_SETTINGS;
-    }
+    extension_settings[extensionName] = extension_settings[extensionName] || DEFAULT_SETTINGS;
 }
 
 function processMessage(element) {
-    if (!extension_settings.asteriskProcessor.enabled) return;
+    if (!extension_settings[extensionName].enabled) return;
     
     const contentBlocks = element.querySelectorAll(".mes_text, .mes__edit_content");
     contentBlocks.forEach(block => {
@@ -27,15 +24,13 @@ function processMessage(element) {
 jQuery(async () => {
     loadSettings();
     
-    // Load settings HTML
     const settingsHtml = await $.get(`${extensionFolderPath}/example.html`);
-    $("#extensions_settings2").append(settingsHtml);
+    $("#extensions_settings").append(settingsHtml);
     
-    // Initialize checkbox state
     $("#asterisk-processor-enabled")
-        .prop("checked", extension_settings.asteriskProcessor.enabled)
+        .prop("checked", extension_settings[extensionName].enabled)
         .on("change", function() {
-            extension_settings.asteriskProcessor.enabled = this.checked;
+            extension_settings[extensionName].enabled = this.checked;
             saveSettingsDebounced();
             eventSource.emit(event_types.CHAT_CHANGED);
         });
