@@ -1,16 +1,16 @@
 // text-processor.js
-export function applyTextTransformations(text, substituteBoundaries) {
+export function applyTextTransformations(text) {
     let inQuote = false;
     let inAsterisk = false;
     let asteriskBuffer = [];
     let result = [];
     
-    // Main processing logic
     for (let i = 0; i < text.length; i++) {
         const char = text[i];
         
         if (char === '"') {
             if (inQuote) {
+                // Closing quote
                 if (inAsterisk) {
                     result.push(asteriskBuffer.join('').toUpperCase());
                     asteriskBuffer = [];
@@ -19,6 +19,7 @@ export function applyTextTransformations(text, substituteBoundaries) {
                 result.push(char);
                 inQuote = false;
             } else {
+                // Opening quote
                 if (inAsterisk) {
                     result.push(`**${asteriskBuffer.join('')}**`);
                     asteriskBuffer = [];
@@ -62,14 +63,5 @@ export function applyTextTransformations(text, substituteBoundaries) {
         result.push(inQuote ? content.toUpperCase() : `**${content}**`);
     }
     
-    let processedText = result.join('');
-    
-    // Additional boundary substitution if enabled
-    if (substituteBoundaries) {
-        processedText = processedText
-            .replace(/\*\*"/g, '"')  // Replace **" with "
-            .replace(/"\*\*/g, '"'); // Replace "** with "
-    }
-    
-    return processedText;
+    return result.join('');
 }
