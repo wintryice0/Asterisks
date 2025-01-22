@@ -1,63 +1,49 @@
-// The main script for the extension
-// The following are examples of some basic extension functionality
+// index.js
+import { extension_settings, eventSource, event_types } from "../../../../script.js";
+import { applyTextTransformations } from "./text-processor.js";
 
-//You'll likely need to import extension_settings, getContext, and loadExtensionSettings from extensions.js
-import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
+const DEFAULT_SETTINGS = {
+    enabled: true
+};
 
-//You'll likely need to import some other functions from the main script
-import { saveSettingsDebounced } from "../../../../script.js";
-
-// Keep track of where your extension is located, name should match repo name
-const extensionName = "st-extension-example";
-const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
-const extensionSettings = extension_settings[extensionName];
-const defaultSettings = {};
-
-
- 
-// Loads the extension settings if they exist, otherwise initializes them to the defaults.
-async function loadSettings() {
-  //Create the settings if they don't exist
-  extension_settings[extensionName] = extension_settings[extensionName] || {};
-  if (Object.keys(extension_settings[extensionName]).length === 0) {
-    Object.assign(extension_settings[extensionName], defaultSettings);
-  }
-
-  // Updating settings in the UI
-  $("#example_setting").prop("checked", extension_settings[extensionName].example_setting).trigger("input");
+function loadSettings() {
+    if (!extension_settings.asteriskProcessor) {
+        extension_settings.asteriskProcessor = DEFAULT_SETTINGS;
+    }
 }
 
-// This function is called when the extension settings are changed in the UI
-function onExampleInput(event) {
-  const value = Boolean($(event.target).prop("checked"));
-  extension_settings[extensionName].example_setting = value;
-  saveSettingsDebounced();
+function processMessage(element) {
+    if (!extension_settings.asteriskProcessor.enabled) return;
+    
+    const contentBlocks = element.querySelectorAll(".mes_text, .mes__edit_content");
+    contentBlocks.forEach(block => {
+        block.innerHTML = applyTextTransformations(block.innerHTML);
+    });
 }
 
-// This function is called when the button is clicked
-function onButtonClick() {
-  // You can do whatever you want here
-  // Let's make a popup appear with the checked setting
-  toastr.info(
-    `The checkbox is ${extension_settings[extensionName].example_setting ? "checked" : "not checked"}`,
-    "A popup appeared because you clicked the button!"
-  );
+function addSettings() {
+    const settingsHtml = `
+    <div class="asterisk-processor-settings">
+        <h4>Asterisk Processor</h4>
+        <label>
+            <input type="checkbox" id="asterisk-processor-enabled">
+            Enable Asterisk Processing
+        </label>
+    </div>`;
+    
+    $("#extensions_settings2").append(settingsHtml);
+    
+    $("#asterisk-processor-enabled").change(function() {
+        extension_settings.asteriskProcessor.enabled = this.checked;
+        eventSource.emit(event_types.CHAT_CHANGED);
+    });
 }
 
-// This function is called when the extension is loaded
 jQuery(async () => {
-  // This is an example of loading HTML from a file
-  const settingsHtml = await $.get(`${extensionFolderPath}/example.html`);
-
-  // Append settingsHtml to extensions_settings
-  // extension_settings and extensions_settings2 are the left and right columns of the settings menu
-  // Left should be extensions that deal with system functions and right should be visual/UI related 
-  $("#extensions_settings").append(settingsHtml);
-
-  // These are examples of listening for events
-  $("#my_button").on("click", onButtonClick);
-  $("#example_setting").on("input", onExampleInput);
-
-  // Load settings when starting things up (if you have any)
-  loadSettings();
+    loadSettings();
+    addSettings();
+    $("#asterisk-processor-enabled").prop("checked", extension_settings.asteriskProcessor.enabled);
+    
+    eventSource.on(event_types.MESSAGE_RECEIVED, processMessage);
+    eventSource.on(event_types.MESSAGE_SWIPED, processMessage);
 });
