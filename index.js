@@ -6,6 +6,9 @@ const DEFAULT_SETTINGS = {
     enabled: true
 };
 
+const extensionName = "wintryice0-asterisks"; // Match your folder name
+const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+
 function loadSettings() {
     if (!extension_settings.asteriskProcessor) {
         extension_settings.asteriskProcessor = DEFAULT_SETTINGS;
@@ -21,28 +24,20 @@ function processMessage(element) {
     });
 }
 
-function addSettings() {
-    const settingsHtml = `
-    <div class="asterisk-processor-settings">
-        <h4>Asterisk Processor</h4>
-        <label>
-            <input type="checkbox" id="asterisk-processor-enabled">
-            Enable Asterisk Processing
-        </label>
-    </div>`;
-    
-    $("#extensions_settings2").append(settingsHtml);
-    
-    $("#asterisk-processor-enabled").change(function() {
-        extension_settings.asteriskProcessor.enabled = this.checked;
-        eventSource.emit(event_types.CHAT_CHANGED);
-    });
-}
-
 jQuery(async () => {
     loadSettings();
-    addSettings();
-    $("#asterisk-processor-enabled").prop("checked", extension_settings.asteriskProcessor.enabled);
+    
+    // Load and append the HTML from example.html
+    const settingsHtml = await $.get(`${extensionFolderPath}/example.html`);
+    $("#extensions_settings2").append(settingsHtml);
+    
+    // Initialize checkbox state and bind change event
+    $("#asterisk-processor-enabled")
+        .prop("checked", extension_settings.asteriskProcessor.enabled)
+        .on("change", function() {
+            extension_settings.asteriskProcessor.enabled = this.checked;
+            eventSource.emit(event_types.CHAT_CHANGED);
+        });
     
     eventSource.on(event_types.MESSAGE_RECEIVED, processMessage);
     eventSource.on(event_types.MESSAGE_SWIPED, processMessage);
