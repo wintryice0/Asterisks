@@ -7,11 +7,16 @@ function initializeExtension() {
 }
 
 function addTransformButtons() {
-    document.querySelectorAll('.mes:not(.processed)').forEach(message => {
-        message.classList.add('processed'); // Mark as processed
-        const button = createTransformButton(message);
+    document.querySelectorAll('.mes:not(.transform-processed)').forEach(message => {
+        if (!message.querySelector('.mes_text')) return;
+        
+        message.classList.add('transform-processed');
         const buttonsContainer = message.querySelector('.mes_buttons') || createButtonsContainer(message);
-        buttonsContainer.prepend(button);
+        
+        if (!buttonsContainer.querySelector('.transform-button')) {
+            const button = createTransformButton(message);
+            buttonsContainer.prepend(button);
+        }
     });
 }
 
@@ -26,18 +31,19 @@ function createTransformButton(message) {
 function createButtonsContainer(message) {
     const container = document.createElement('div');
     container.className = 'mes_buttons';
-    message.append(container); // Append to work with ST's layout
+    message.append(container);
     return container;
 }
 
 async function applyTextTransformation(content) {
-    // Your transformation logic here
     const modified = content.replace(/\bthe\b/gi, 'ITWORKS');
     return modified;
 }
 
 async function handleTransformClick(event) {
     const button = event.target.closest('.transform-button');
+    if (!button) return;
+
     const mesId = button.dataset.mesId;
     const messageDiv = document.querySelector(`[data-mesid="${mesId}"]`);
     const contentElement = messageDiv.querySelector('.mes_text');
@@ -46,9 +52,7 @@ async function handleTransformClick(event) {
         contentElement.dataset.original = contentElement.innerHTML;
     }
 
-    const currentContent = contentElement.textContent;
-    const modifiedContent = await applyTextTransformation(currentContent);
-
+    const modifiedContent = await applyTextTransformation(contentElement.textContent);
     contentElement.textContent = modifiedContent;
     contentElement.classList.add('transformed');
     addRevertButton(messageDiv);
@@ -66,6 +70,8 @@ function addRevertButton(messageDiv) {
 
 async function handleRevertClick(event) {
     const button = event.target.closest('.revert-button');
+    if (!button) return;
+
     const mesId = button.dataset.mesId;
     const messageDiv = document.querySelector(`[data-mesid="${mesId}"]`);
     const contentElement = messageDiv.querySelector('.mes_text');
@@ -80,12 +86,8 @@ async function handleRevertClick(event) {
 
 function setupEventListeners() {
     document.body.addEventListener('click', (event) => {
-        if (event.target.closest('.transform-button')) {
-            handleTransformClick(event);
-        }
-        if (event.target.closest('.revert-button')) {
-            handleRevertClick(event);
-        }
+        if (event.target.closest('.transform-button')) handleTransformClick(event);
+        if (event.target.closest('.revert-button')) handleRevertClick(event);
     });
 
     eventSource.on(event_types.MESSAGE_RECEIVED, addTransformButtons);
@@ -93,16 +95,33 @@ function setupEventListeners() {
     eventSource.on(event_types.MESSAGE_DELETED, (mesId) => {
         document.querySelectorAll(`[data-mesid="${mesId}"]`).forEach(el => el.remove());
     });
-
+    eventSource.on(event_types.CHAT_CHANGED, () => {
+        document.querySelectorAll('.transform-processed').forEach(msg => {
+            msg.classList.remove('transform-processed');
+        });
+        addTransformButtons();
+    });
 }
 
-
-
 function setupMutationObserver() {
-    const chatContainer = document.querySelector('#chatList, .chat-container') || document.body;
+    const findChatContainer = () => {
+        const container = document.querySelector('#chatList, .chat-container');
+        if (container) return container;
+        
+        console.warn('Chat container not found, retrying...');
+        setTimeout(findChatContainer, 1000);
+        return null;
+    };
 
-    const observer = new MutationObserver(() => {
-        addTransformButtons();
+    const chatContainer = findChatContainer();
+    if (!chatContainer) return;
+
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            if (mutation.addedNodes.length) {
+                addTransformButtons();
+            }
+        });
     });
 
     observer.observe(chatContainer, {
