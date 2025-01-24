@@ -1,3 +1,5 @@
+
+// In index.js
 const extensionName = "code-transform-extension";
 let changeHistory = new Map();
 
@@ -8,6 +10,9 @@ function initializeExtension() {
 
 function addTransformButtons() {
     document.querySelectorAll('.mes').forEach(message => {
+        const mesId = message.getAttribute('mesid');
+        if (!mesId) return; // Skip messages without mesid
+        
         if (!message.querySelector('.transform-button')) {
             const button = createTransformButton(message);
             const buttonsContainer = message.querySelector('.mes_buttons') || createButtonsContainer(message);
@@ -17,13 +22,22 @@ function addTransformButtons() {
 }
 
 function createTransformButton(message) {
+    const mesId = message.getAttribute('mesid');
+    if (!mesId) return null; // Ensure mesid exists
+    
     const button = document.createElement('div');
     button.className = 'mes_button transform-button fa-solid fa-wand-magic-sparkles';
     button.title = 'Apply Code Transformation';
-    button.dataset.mesId = message.getAttribute('mesid');
+    button.dataset.mesId = mesId;
     button.addEventListener('click', handleTransformClick);
     return button;
 }
+
+// Update setupEventListeners to clear history on chat switch
+
+
+// Remainder of the code remains the same
+
 
 
 function createButtonsContainer(message) {
@@ -93,17 +107,18 @@ async function handleRevertClick(event) {
     }
 }
 
+
 function setupEventListeners() {
     eventSource.on(event_types.MESSAGE_RECEIVED, addTransformButtons);
-    eventSource.on(event_types.MESSAGE_EDITED, mesId => {
-        if (changeHistory.has(mesId)) {
-            changeHistory.delete(mesId);
-        }
-    });
+    eventSource.on(event_types.MESSAGE_EDITED, mesId => changeHistory.delete(mesId));
+    eventSource.on(event_types.MESSAGE_DELETED_ALL, () => changeHistory.clear());
 }
+
 
 // Initialize when ready
 jQuery(() => {
     initializeExtension();
     setInterval(addTransformButtons, 1000);  // Ensure buttons on new messages
 });
+
+
