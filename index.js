@@ -1,44 +1,93 @@
-// index.js
-import { extension_settings, eventSource, event_types } from "../../../../script.js";
-import { applyTextTransformations } from "./text-processor.js";
+const extensionName = "code-transform-extension";
+let changeHistory = new Map();
 
-const DEFAULT_SETTINGS = {
-    enabled: true
-};
-
-const extensionName = "wintryice0-asterisks"; // Match your folder name
-const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
-
-function loadSettings() {
-    if (!extension_settings.asteriskProcessor) {
-        extension_settings.asteriskProcessor = DEFAULT_SETTINGS;
-    }
+function initializeExtension() {
+    addTransformButtons();
+    setupEventListeners();
 }
 
-function processMessage(element) {
-    if (!extension_settings.asteriskProcessor.enabled) return;
-    
-    const contentBlocks = element.querySelectorAll(".mes_text, .mes__edit_content");
-    contentBlocks.forEach(block => {
-        block.innerHTML = applyTextTransformations(block.innerHTML);
+function addTransformButtons() {
+    document.querySelectorAll('.mes').forEach(message => {
+        if (!message.querySelector('.transform-button')) {
+            const button = createTransformButton(message);
+            const buttonsContainer = message.querySelector('.mes_buttons') || createButtonsContainer(message);
+            buttonsContainer.prepend(button);
+        }
     });
 }
 
-jQuery(async () => {
-    loadSettings();
+function createTransformButton(message) {
+    const button = document.createElement('div');
+    button.className = 'mes_button transform-button fa-solid fa-wand-magic-sparkles';
+    button.title = 'Apply Code Transformation';
+    button.dataset.mesId = message.getAttribute('mesid');
+    button.addEventListener('click', handleTransformClick);
+    return button;
+}
+
+async function handleTransformClick(event) {
+    const button = event.target;
+    const mesId = button.dataset.mesId;
+    const messageDiv = document.querySelector(`[mesid="${mesId}"]`);
+    const contentElement = messageDiv.querySelector('.mes_text');
     
-    // Load and append the HTML from example.html
-    const settingsHtml = await $.get(`${extensionFolderPath}/example.html`);
-    $("#extensions_settings2").append(settingsHtml);
-    
-    // Initialize checkbox state and bind change event
-    $("#asterisk-processor-enabled")
-        .prop("checked", extension_settings.asteriskProcessor.enabled)
-        .on("change", function() {
-            extension_settings.asteriskProcessor.enabled = this.checked;
-            eventSource.emit(event_types.CHAT_CHANGED);
+    // Store original content
+    if (!changeHistory.has(mesId)) {
+        changeHistory.set(mesId, {
+            original: contentElement.innerHTML,
+            modified: null
         });
+    }
+
+    // Apply transformation
+    const currentContent = contentElement.textContent;
+    const modifiedContent = await applyPythonTransformation(currentContent);  // Your Python integration point
     
-    eventSource.on(event_types.MESSAGE_RECEIVED, processMessage);
-    eventSource.on(event_types.MESSAGE_SWIPED, processMessage);
+    // Update UI
+    contentElement.innerHTML = modifiedContent;
+    contentElement.classList.add('transformed');
+    addRevertButton(messageDiv);
+    
+    // Update history
+    changeHistory.get(mesId).modified = modifiedContent;
+}
+
+function addRevertButton(messageDiv) {
+    if (!messageDiv.querySelector('.revert-button')) {
+        const button = document.createElement('div');
+        button.className = 'mes_button revert-button fa-solid fa-rotate-left';
+        button.title = 'Revert to Original';
+        button.dataset.mesId = messageDiv.getAttribute('mesid');
+        button.addEventListener('click', handleRevertClick);
+        messageDiv.querySelector('.mes_buttons').prepend(button);
+    }
+}
+
+async function handleRevertClick(event) {
+    const button = event.target;
+    const mesId = button.dataset.mesId;
+    const history = changeHistory.get(mesId);
+    
+    if (history && history.original) {
+        const messageDiv = document.querySelector(`[mesid="${mesId}"]`);
+        const contentElement = messageDiv.querySelector('.mes_text');
+        contentElement.innerHTML = history.original;
+        contentElement.classList.remove('transformed');
+        button.remove();
+    }
+}
+
+function setupEventListeners() {
+    eventSource.on(event_types.MESSAGE_RECEIVED, addTransformButtons);
+    eventSource.on(event_types.MESSAGE_EDITED, mesId => {
+        if (changeHistory.has(mesId)) {
+            changeHistory.delete(mesId);
+        }
+    });
+}
+
+// Initialize when ready
+jQuery(() => {
+    initializeExtension();
+    setInterval(addTransformButtons, 1000);  // Ensure buttons on new messages
 });
