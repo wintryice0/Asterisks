@@ -93,9 +93,7 @@ async function handleTransformClick(event) {
 }
 
 async function applyTextTransformation(content) {
-    // Replace 'the' with 'ITWORKS' (case-insensitive)
-    const modified = content.replace(/\bthe\b/gi, 'ITWORKS');
-    return modified;
+    return applyTextTransformations(content);
 }
 
 function addRevertButton(messageDiv) {
