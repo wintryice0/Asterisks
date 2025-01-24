@@ -8,8 +8,13 @@ function initializeExtension() {
 
 function addTransformButtons() {
     document.querySelectorAll('.mes').forEach(message => {
+        const mesId = message.getAttribute('mesid');
+        if (!mesId) return;  // Skip messages without ID
+        
         if (!message.querySelector('.transform-button')) {
             const button = createTransformButton(message);
+            if (!button) return;
+            
             const buttonsContainer = message.querySelector('.mes_buttons') || createButtonsContainer(message);
             buttonsContainer.prepend(button);
         }
@@ -17,25 +22,25 @@ function addTransformButtons() {
 }
 
 function createTransformButton(message) {
+    const mesId = message.getAttribute('mesid');
+    if (!mesId) return null;
+
     const button = document.createElement('div');
     button.className = 'mes_button transform-button fa-solid fa-wand-magic-sparkles';
     button.title = 'Apply Code Transformation';
-    button.dataset.mesId = message.getAttribute('mesid');
+    button.dataset.mesId = mesId;
     button.addEventListener('click', handleTransformClick);
     return button;
 }
 
-
 function createButtonsContainer(message) {
     const container = document.createElement('div');
     container.className = 'mes_buttons';
-    message.prepend(container); // Prepend to place buttons before content
+    message.prepend(container);
     return container;
 }
 
-
 async function applyTextTransformation(content) {
-    // Case-insensitive replacement of 'the' with 'ITWORKS'
     const modified = content.replace(/\bthe\b/gi, 'ITWORKS');
     return modified;
 }
@@ -44,9 +49,18 @@ async function handleTransformClick(event) {
     const button = event.target;
     const mesId = button.dataset.mesId;
     const messageDiv = document.querySelector(`[mesid="${mesId}"]`);
-    const contentElement = messageDiv.querySelector('.mes_text');
     
-    // Store original content
+    if (!messageDiv) {
+        console.error('Message element not found');
+        return;
+    }
+
+    const contentElement = messageDiv.querySelector('.mes_text');
+    if (!contentElement) {
+        console.error('Message content element not found');
+        return;
+    }
+
     if (!changeHistory.has(mesId)) {
         changeHistory.set(mesId, {
             original: contentElement.innerHTML,
@@ -54,19 +68,19 @@ async function handleTransformClick(event) {
         });
     }
 
-    // Apply transformation
-    const currentContent = contentElement.textContent;
-    const modifiedContent = await applyTextTransformation(currentContent);
-    
-    // Update UI
-    contentElement.textContent = modifiedContent; // Use textContent to avoid re-rendering HTML
-    contentElement.classList.add('transformed');
-    addRevertButton(messageDiv);
-    
-    // Update history
-    changeHistory.get(mesId).modified = modifiedContent;
+    try {
+        const currentContent = contentElement.textContent;
+        const modifiedContent = await applyTextTransformation(currentContent);
+        
+        contentElement.textContent = modifiedContent;
+        contentElement.classList.add('transformed');
+        addRevertButton(messageDiv);
+        
+        changeHistory.get(mesId).modified = modifiedContent;
+    } catch (error) {
+        console.error('Transformation failed:', error);
+    }
 }
-
 
 function addRevertButton(messageDiv) {
     if (!messageDiv.querySelector('.revert-button')) {
@@ -82,28 +96,51 @@ function addRevertButton(messageDiv) {
 async function handleRevertClick(event) {
     const button = event.target;
     const mesId = button.dataset.mesId;
-    const history = changeHistory.get(mesId);
     
-    if (history && history.original) {
-        const messageDiv = document.querySelector(`[mesid="${mesId}"]`);
-        const contentElement = messageDiv.querySelector('.mes_text');
-        contentElement.innerHTML = history.original;
-        contentElement.classList.remove('transformed');
-        button.remove();
+    if (!changeHistory.has(mesId)) {
+        console.error('No history for message:', mesId);
+        return;
     }
+
+    const history = changeHistory.get(mesId);
+    const messageDiv = document.querySelector(`[mesid="${mesId}"]`);
+    
+    if (!messageDiv) {
+        console.error('Message element not found for revert');
+        return;
+    }
+
+    const contentElement = messageDiv.querySelector('.mes_text');
+    if (!contentElement) {
+        console.error('Content element not found for revert');
+        return;
+    }
+
+    contentElement.innerHTML = history.original;
+    contentElement.classList.remove('transformed');
+    button.remove();
+    changeHistory.delete(mesId);
 }
 
 function setupEventListeners() {
     eventSource.on(event_types.MESSAGE_RECEIVED, addTransformButtons);
-    eventSource.on(event_types.MESSAGE_EDITED, mesId => {
-        if (changeHistory.has(mesId)) {
-            changeHistory.delete(mesId);
-        }
+    eventSource.on(event_types.MESSAGE_EDITED, mesId => changeHistory.delete(mesId));
+    eventSource.on(event_types.MESSAGE_DELETED_ALL, () => {
+        changeHistory.clear();
+        console.debug('Chat changed - cleared transformation history');
     });
 }
 
-// Initialize when ready
 jQuery(() => {
     initializeExtension();
-    setInterval(addTransformButtons, 1000);  // Ensure buttons on new messages
+    const debouncedButtons = debounce(addTransformButtons, 300);
+    setInterval(debouncedButtons, 1000);
 });
+
+function debounce(func, timeout = 300) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+    };
+}
