@@ -1,15 +1,18 @@
-<div class="asterisk-processor-settings">
+<div class="transform-settings">
     <div class="inline-drawer">
         <div class="inline-drawer-toggle inline-drawer-header">
-            <b>Asterisk Processor</b>
-            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+            <b>Code Transform Settings</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down"></div>
         </div>
         <div class="inline-drawer-content">
-            <div class="asterisk-processor_block flex-container">
-                <input id="asterisk-processor-enabled" type="checkbox" />
-                <label for="asterisk-processor-enabled">Enable Asterisk Processing</label>
+            <div class="flex-container">
+                <label>Highlight Color:</label>
+                <input type="color" id="highlight_color" value="#689f38">
             </div>
-            <hr class="sysHR" />
+            <div class="flex-container">
+                <label>Highlight Duration:</label>
+                <input type="range" id="highlight_duration" min="1" max="60" value="15">
+            </div>
         </div>
     </div>
 </div>
