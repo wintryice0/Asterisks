@@ -1,12 +1,28 @@
-
 // In index.js
 const extensionName = "code-transform-extension";
 let changeHistory = new Map();
+let currentChatId = null;
 
 function initializeExtension() {
-    addTransformButtons();
-    setupEventListeners();
+    setupEventListeners(); // Attach event listeners right away
+    addTransformButtonsToExistingMessages(); // Initial load
 }
+
+// Function to add buttons to existing messages when the chat is loaded or switched
+function addTransformButtonsToExistingMessages() {
+    document.querySelectorAll('.mes').forEach(message => {
+        const mesId = message.getAttribute('mesid');
+        if (!mesId) return;
+
+         if (!message.querySelector('.transform-button')) {
+                const button = createTransformButton(message);
+                const buttonsContainer = message.querySelector('.mes_buttons') || createButtonsContainer(message);
+                buttonsContainer.prepend(button);
+         }
+    });
+}
+
+
 
 function addTransformButtons() {
     document.querySelectorAll('.mes').forEach(message => {
@@ -112,13 +128,21 @@ function setupEventListeners() {
     eventSource.on(event_types.MESSAGE_RECEIVED, addTransformButtons);
     eventSource.on(event_types.MESSAGE_EDITED, mesId => changeHistory.delete(mesId));
     eventSource.on(event_types.MESSAGE_DELETED_ALL, () => changeHistory.clear());
+    eventSource.on(event_types.CHAT_CHANGED, handleChatSwitch); // Handle chat switch
 }
 
 
 // Initialize when ready
 jQuery(() => {
     initializeExtension();
-    setInterval(addTransformButtons, 1000);  // Ensure buttons on new messages
+    setInterval(addTransformButtons, 1000); // Ensure buttons on new messages
 });
 
 
+
+function handleChatSwitch(chatId) {
+        // Clear change history and reapply buttons
+        changeHistory.clear();
+        addTransformButtonsToExistingMessages();
+        currentChatId = chatId;
+}
