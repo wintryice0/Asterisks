@@ -4,12 +4,37 @@
     transition: all 0.3s ease;
 }
 
-.transform-button:hover {
+.mes {
+    position: relative;
+}
+
+.mes_buttons {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    display: flex;
+    gap: 3px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 1;
+}
+
+.mes:hover .mes_buttons {
+    opacity: 1;
+}
+
+.transform-button {
     color: #689f38 !important;
+    cursor: pointer;
+}
+
+.transform-button:hover {
+    color: #4b702a !important;
 }
 
 .revert-button {
     color: #d32f2f !important;
+    cursor: pointer;
 }
 
 .revert-button:hover {
