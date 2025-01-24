@@ -9,4 +9,4 @@ Adds a toolbar with quick-access buttons for common slash commands above the inp
 - Responsive design that matches SillyTavern's theme
 
 ## Installation
-Use this URL with the extension installer: `https://github.com/YourUsername/SillyTavern-Extension-QuickActions`
+Use this URL with the extension installer: `https://github.com/wintryice0/SillyTavern-Extension-QuickActions`
