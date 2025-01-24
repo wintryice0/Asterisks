@@ -6,25 +6,44 @@ function initializeExtension() {
     addTransformButtons();
     setupEventListeners();
     setupMutationObserver();
+
+    // Re-check for messages after short delay (ST async rendering)
+    setTimeout(addTransformButtons, 500);
 }
 
 function setupMutationObserver() {
     const chatContainer = document.getElementById('chat');
-    if (!chatContainer) return;
+    if (!chatContainer) {
+        console.error("Chat container not found!");
+        return;
+    }
+
+    // Disconnect existing observer before reinitializing
+    if (observer) {
+        observer.disconnect();
+    }
 
     observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.addedNodes.length) {
                 mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('mes')) {
-                        addButtonToMessage(node);
+                    // Handle both new messages and re-rendered messages
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const message = node.classList.contains('mes') ? node : node.querySelector('.mes');
+                        if (message) {
+                            addButtonToMessage(message);
+                        }
                     }
                 });
             }
         });
     });
 
-    observer.observe(chatContainer, { childList: true, subtree: true });
+    // Observe the ENTIRE chat container (including subtree)
+    observer.observe(chatContainer, { 
+        childList: true, 
+        subtree: true // 🔑 Critical for nested messages
+    });
 }
 
 function addTransformButtons() {
@@ -38,8 +57,13 @@ function addButtonToMessage(message) {
     const mesId = message.getAttribute('mesid');
     if (!mesId || message.querySelector('.transform-button')) return;
 
+    // 🔍 More robust container check
+    let buttonsContainer = message.querySelector('.mes_buttons');
+    if (!buttonsContainer) {
+        buttonsContainer = createButtonsContainer(message);
+    }
+
     const button = createTransformButton(mesId);
-    const buttonsContainer = message.querySelector('.mes_buttons') || createButtonsContainer(message);
     buttonsContainer.prepend(button);
 }
 
@@ -62,6 +86,8 @@ function createButtonsContainer(message) {
 function setupEventListeners() {
     eventSource.on(event_types.CHAT_CHANGED, () => {
         changeHistory.clear();
+        // Reinitialize observer for new chat container
+        setupMutationObserver();
         addTransformButtons();
     });
     eventSource.on(event_types.MESSAGE_RECEIVED, addTransformButtons);
