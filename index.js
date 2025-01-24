@@ -1,32 +1,49 @@
-
 const extensionName = "code-transform-extension";
 let changeHistory = new Map();
+let observer;
 
 function initializeExtension() {
     addTransformButtons();
     setupEventListeners();
-    setupMutationObserver(); // Add this
+    setupMutationObserver();
 }
 
+function setupMutationObserver() {
+    const chatContainer = document.getElementById('chat');
+    if (!chatContainer) return;
 
+    observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.addedNodes.length) {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('mes')) {
+                        addButtonToMessage(node);
+                    }
+                });
+            }
+        });
+    });
+
+    observer.observe(chatContainer, { childList: true, subtree: true });
+}
 
 function addTransformButtons() {
-    document.querySelectorAll('.mes').forEach(message => {
-        const mesId = message.getAttribute('mesid');
-        if (!mesId) return; // Skip messages without mesid
-        
-        if (!message.querySelector('.transform-button')) {
-            const button = createTransformButton(message);
-            const buttonsContainer = message.querySelector('.mes_buttons') || createButtonsContainer(message);
-            buttonsContainer.prepend(button);
-        }
+    document.querySelectorAll('.mes:not(.xdc-processed)').forEach(message => {
+        addButtonToMessage(message);
+        message.classList.add('xdc-processed');
     });
 }
 
-function createTransformButton(message) {
+function addButtonToMessage(message) {
     const mesId = message.getAttribute('mesid');
-    if (!mesId) return null; // Ensure mesid exists
-    
+    if (!mesId || message.querySelector('.transform-button')) return;
+
+    const button = createTransformButton(mesId);
+    const buttonsContainer = message.querySelector('.mes_buttons') || createButtonsContainer(message);
+    buttonsContainer.prepend(button);
+}
+
+function createTransformButton(mesId) {
     const button = document.createElement('div');
     button.className = 'mes_button transform-button fa-solid fa-wand-magic-sparkles';
     button.title = 'Apply Code Transformation';
@@ -35,36 +52,21 @@ function createTransformButton(message) {
     return button;
 }
 
-// Replace the setInterval with this
-function setupMutationObserver() {
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.addedNodes.length) {
-                addTransformButtons();
-            }
-        });
-    });
-
-    observer.observe(document.getElementById('chat'), {
-        childList: true,
-        subtree: true
-    });
-}
-
-
-
 function createButtonsContainer(message) {
     const container = document.createElement('div');
     container.className = 'mes_buttons';
-    message.prepend(container); // Prepend to place buttons before content
+    message.prepend(container);
     return container;
 }
 
-
-async function applyTextTransformation(content) {
-    // Case-insensitive replacement of 'the' with 'ITWORKS'
-    const modified = content.replace(/\bthe\b/gi, 'ITWORKS');
-    return modified;
+function setupEventListeners() {
+    eventSource.on(event_types.CHAT_CHANGED, () => {
+        changeHistory.clear();
+        addTransformButtons();
+    });
+    eventSource.on(event_types.MESSAGE_RECEIVED, addTransformButtons);
+    eventSource.on(event_types.MESSAGE_EDITED, mesId => changeHistory.delete(mesId));
+    eventSource.on(event_types.MESSAGE_DELETED_ALL, () => changeHistory.clear());
 }
 
 async function handleTransformClick(event) {
@@ -73,7 +75,6 @@ async function handleTransformClick(event) {
     const messageDiv = document.querySelector(`[mesid="${mesId}"]`);
     const contentElement = messageDiv.querySelector('.mes_text');
     
-    // Store original content
     if (!changeHistory.has(mesId)) {
         changeHistory.set(mesId, {
             original: contentElement.innerHTML,
@@ -81,19 +82,21 @@ async function handleTransformClick(event) {
         });
     }
 
-    // Apply transformation
     const currentContent = contentElement.textContent;
     const modifiedContent = await applyTextTransformation(currentContent);
     
-    // Update UI
-    contentElement.textContent = modifiedContent; // Use textContent to avoid re-rendering HTML
+    contentElement.textContent = modifiedContent;
     contentElement.classList.add('transformed');
     addRevertButton(messageDiv);
     
-    // Update history
     changeHistory.get(mesId).modified = modifiedContent;
 }
 
+async function applyTextTransformation(content) {
+    // Replace 'the' with 'ITWORKS' (case-insensitive)
+    const modified = content.replace(/\bthe\b/gi, 'ITWORKS');
+    return modified;
+}
 
 function addRevertButton(messageDiv) {
     if (!messageDiv.querySelector('.revert-button')) {
@@ -111,7 +114,7 @@ async function handleRevertClick(event) {
     const mesId = button.dataset.mesId;
     const history = changeHistory.get(mesId);
     
-    if (history && history.original) {
+    if (history?.original) {
         const messageDiv = document.querySelector(`[mesid="${mesId}"]`);
         const contentElement = messageDiv.querySelector('.mes_text');
         contentElement.innerHTML = history.original;
@@ -120,24 +123,4 @@ async function handleRevertClick(event) {
     }
 }
 
-
-function setupEventListeners() {
-    eventSource.on(event_types.MESSAGE_RECEIVED, addTransformButtons);
-    eventSource.on(event_types.MESSAGE_EDITED, mesId => changeHistory.delete(mesId));
-    eventSource.on(event_types.MESSAGE_DELETED_ALL, () => changeHistory.clear());
-    // Add event listener for chat switch
-    eventSource.on(event_types.CHAT_CHANGED, () => {
-        changeHistory.clear(); // Clear history on chat switch
-        addTransformButtons(); // Re-add buttons to new chat messages
-    });
-}
-
-
-
-// Initialize when ready
-jQuery(() => {
-    initializeExtension();
-//    setInterval(addTransformButtons, 1000);  // Ensure buttons on new messages
-});
-
-
+jQuery(() => initializeExtension());
