@@ -1,12 +1,12 @@
 {
-    "display_name": "Quick Actions Bar",
-    "loading_order": 50,
+    "display_name": "Asterisk Processor",
+    "loading_order": 10,
     "requires": [],
     "optional": [],
     "js": "index.js",
     "css": "style.css",
-    "author": "wintryice0",
+    "author": "Your Name",
     "version": "1.0.0",
-    "homePage": "https://github.com/wintryice0/SillyTavern-Extension-QuickActions",
+    "homePage": "https://github.com/your-repo",
     "auto_update": true
 }

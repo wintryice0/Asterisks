@@ -1,78 +1,44 @@
-// Import necessary functions from SillyTavern
-import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
-import { saveSettingsDebounced } from "../../../../script.js";
+// index.js
+import { extension_settings, eventSource, event_types } from "../../../../script.js";
+import { applyTextTransformations } from "./text-processor.js";
 
-// Define extension name and folder path
-const extensionName = "quickactions";
+const DEFAULT_SETTINGS = {
+    enabled: true
+};
+
+const extensionName = "wintryice0-asterisks"; // Match your folder name
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
-// Initialize extension settings
-const extensionSettings = extension_settings[extensionName];
-const defaultSettings = {};
-
-// Function to create the Quick Actions Bar
-function createQuickActionsBar() {
-    const container = document.createElement('div');
-    container.id = 'quickActionsBar';
-    container.className = 'flex-container flexGap5';
-
-    const commands = [
-        { 
-            name: 'Retry', 
-            command: '/retry', 
-            executeDirectly: true,
-            icon: 'fa-solid fa-arrow-rotate-left'
-        },
-        { 
-            name: 'Continue', 
-            command: '/continue', 
-            executeDirectly: true,
-            icon: 'fa-solid fa-forward'
-        },
-        { 
-            name: 'Summary', 
-            command: '/summary', 
-            executeDirectly: true,
-            icon: 'fa-solid fa-file-lines'
-        },
-        { 
-            name: 'Send As', 
-            command: '/sendas name="Character"', 
-            executeDirectly: false,
-            icon: 'fa-solid fa-quote-right'
-        },
-    ];
-
-    commands.forEach(({ name, command, executeDirectly, icon }) => {
-        const button = document.createElement('div');
-        button.className = 'quick-action-button';
-        button.title = name;
-        button.innerHTML = `<i class="${icon}"></i>`;
-        
-        button.addEventListener('click', () => {
-            if (executeDirectly) {
-                executeSlashCommandsWithOptions(command);
-            } else {
-                const textarea = document.getElementById('send_textarea');
-                if (textarea) {
-                    textarea.value = `${command} ${textarea.value}`;
-                    textarea.focus();
-                }
-            }
-        });
-        
-        container.appendChild(button);
-    });
-
-    const sendForm = document.getElementById('form_send');
-    if (sendForm) {
-        sendForm.insertBefore(container, sendForm.querySelector('.spinBtn'));
+function loadSettings() {
+    if (!extension_settings.asteriskProcessor) {
+        extension_settings.asteriskProcessor = DEFAULT_SETTINGS;
     }
 }
 
-// Main initialization function
+function processMessage(element) {
+    if (!extension_settings.asteriskProcessor.enabled) return;
+    
+    const contentBlocks = element.querySelectorAll(".mes_text, .mes__edit_content");
+    contentBlocks.forEach(block => {
+        block.innerHTML = applyTextTransformations(block.innerHTML);
+    });
+}
+
 jQuery(async () => {
-    // Ensure the DOM is fully loaded before creating the Quick Actions Bar
-    await loadExtensionSettings(extensionName);
-    createQuickActionsBar();
+    loadSettings();
+    
+    // Load and append the HTML from example.html
+    const settingsHtml = await $.get(`${extensionFolderPath}/example.html`);
+    $("#extensions_settings2").append(settingsHtml);
+    
+    // Initialize checkbox state and bind change event
+    $("#asterisk-processor-enabled")
+        .prop("checked", extension_settings.asteriskProcessor.enabled)
+        .on("change", function() {
+            extension_settings.asteriskProcessor.enabled = this.checked;
+            eventSource.emit(event_types.CHAT_CHANGED);
+        });
+    
+    eventSource.on(event_types.MESSAGE_RECEIVED, processMessage);
+    eventSource.on(event_types.MESSAGE_SWIPED, processMessage);
 });
