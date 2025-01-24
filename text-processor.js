@@ -1,5 +1,5 @@
 // text-processor.js
-export function applyTextTransformations(text) {
+function applyTextTransformations(text) {
     let inQuote = false;
     let inAsterisk = false;
     let asteriskBuffer = [];
