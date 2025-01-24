@@ -20,7 +20,7 @@ function createTransformButton(message) {
     const button = document.createElement('div');
     button.className = 'mes_button transform-button fa-solid fa-wand-magic-sparkles';
     button.title = 'Apply Code Transformation';
-    button.dataset.mesId = message.getAttribute('mesid');
+    button.dataset.mesId = message.dataset.mesId; // Use dataset.mesId
     button.addEventListener('click', handleTransformClick);
     return button;
 }
@@ -43,7 +43,7 @@ async function applyTextTransformation(content) {
 async function handleTransformClick(event) {
     const button = event.target;
     const mesId = button.dataset.mesId;
-    const messageDiv = document.querySelector(`[mesid="${mesId}"]`);
+    const messageDiv = document.querySelector(`[data-mesid="${mesId}"]`); // Correct selector
     const contentElement = messageDiv.querySelector('.mes_text');
     
     // Store original content
@@ -73,7 +73,7 @@ function addRevertButton(messageDiv) {
         const button = document.createElement('div');
         button.className = 'mes_button revert-button fa-solid fa-rotate-left';
         button.title = 'Revert to Original';
-        button.dataset.mesId = messageDiv.getAttribute('mesid');
+        button.dataset.mesId = messageDiv.dataset.mesId; // Use dataset
         button.addEventListener('click', handleRevertClick);
         messageDiv.querySelector('.mes_buttons').prepend(button);
     }
@@ -85,7 +85,7 @@ async function handleRevertClick(event) {
     const history = changeHistory.get(mesId);
     
     if (history && history.original) {
-        const messageDiv = document.querySelector(`[mesid="${mesId}"]`);
+        const messageDiv = document.querySelector(`[data-mesid="${mesId}"]`); // Correct selector
         const contentElement = messageDiv.querySelector('.mes_text');
         contentElement.innerHTML = history.original;
         contentElement.classList.remove('transformed');
