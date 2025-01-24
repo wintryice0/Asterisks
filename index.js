@@ -1,12 +1,14 @@
 
-// In index.js
 const extensionName = "code-transform-extension";
 let changeHistory = new Map();
 
 function initializeExtension() {
     addTransformButtons();
     setupEventListeners();
+    setupMutationObserver(); // Add this
 }
+
+
 
 function addTransformButtons() {
     document.querySelectorAll('.mes').forEach(message => {
@@ -33,10 +35,21 @@ function createTransformButton(message) {
     return button;
 }
 
-// Update setupEventListeners to clear history on chat switch
+// Replace the setInterval with this
+function setupMutationObserver() {
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.addedNodes.length) {
+                addTransformButtons();
+            }
+        });
+    });
 
-
-// Remainder of the code remains the same
+    observer.observe(document.getElementById('chat'), {
+        childList: true,
+        subtree: true
+    });
+}
 
 
 
@@ -124,7 +137,7 @@ function setupEventListeners() {
 // Initialize when ready
 jQuery(() => {
     initializeExtension();
-    setInterval(addTransformButtons, 1000);  // Ensure buttons on new messages
+//    setInterval(addTransformButtons, 1000);  // Ensure buttons on new messages
 });
 
 
