@@ -1,5 +1,16 @@
-const { executeSlashCommandsWithOptions } = SillyTavern.getContext();
+// Import necessary functions from SillyTavern
+import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
+import { saveSettingsDebounced } from "../../../../script.js";
 
+// Define extension name and folder path
+const extensionName = "quickactions";
+const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+
+// Initialize extension settings
+const extensionSettings = extension_settings[extensionName];
+const defaultSettings = {};
+
+// Function to create the Quick Actions Bar
 function createQuickActionsBar() {
     const container = document.createElement('div');
     container.id = 'quickActionsBar';
@@ -59,7 +70,9 @@ function createQuickActionsBar() {
     }
 }
 
-// Initialize extension
-(function() {
+// Main initialization function
+jQuery(async () => {
+    // Ensure the DOM is fully loaded before creating the Quick Actions Bar
+    await loadExtensionSettings(extensionName);
     createQuickActionsBar();
-})();
+});
