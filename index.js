@@ -25,6 +25,21 @@ function createTransformButton(message) {
     return button;
 }
 
+
+function createButtonsContainer(message) {
+    const container = document.createElement('div');
+    container.className = 'mes_buttons';
+    message.prepend(container); // Prepend to place buttons before content
+    return container;
+}
+
+
+async function applyTextTransformation(content) {
+    // Case-insensitive replacement of 'the' with 'ITWORKS'
+    const modified = content.replace(/\bthe\b/gi, 'ITWORKS');
+    return modified;
+}
+
 async function handleTransformClick(event) {
     const button = event.target;
     const mesId = button.dataset.mesId;
@@ -41,16 +56,17 @@ async function handleTransformClick(event) {
 
     // Apply transformation
     const currentContent = contentElement.textContent;
-    const modifiedContent = await applyPythonTransformation(currentContent);  // Your Python integration point
+    const modifiedContent = await applyTextTransformation(currentContent);
     
     // Update UI
-    contentElement.innerHTML = modifiedContent;
+    contentElement.textContent = modifiedContent; // Use textContent to avoid re-rendering HTML
     contentElement.classList.add('transformed');
     addRevertButton(messageDiv);
     
     // Update history
     changeHistory.get(mesId).modified = modifiedContent;
 }
+
 
 function addRevertButton(messageDiv) {
     if (!messageDiv.querySelector('.revert-button')) {
